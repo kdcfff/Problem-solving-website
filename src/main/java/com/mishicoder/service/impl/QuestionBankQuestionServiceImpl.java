@@ -112,14 +112,6 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl<QuestionBankQue
         }
         UserVO userVO = userService.getUserVO(user);
         questionBankQuestionVO.setUser(userVO);
-        // 2. 已登录，获取用户点赞、收藏状态
-        long questionBankQuestionId = questionBankQuestion.getId();
-        User loginUser = userService.getLoginUserPermitNull(request);
-        if (loginUser != null) {
-
-        }
-        // endregion
-
         return questionBankQuestionVO;
     }
 
@@ -138,32 +130,9 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl<QuestionBankQue
             return questionBankQuestionVOPage;
         }
         // 对象列表 => 封装对象列表
-        List<QuestionBankQuestionVO> questionBankQuestionVOList = questionBankQuestionList.stream().map(questionBankQuestion -> {
-            return QuestionBankQuestionVO.objToVo(questionBankQuestion);
-        }).collect(Collectors.toList());
+        List<QuestionBankQuestionVO> questionBankQuestionVOList = questionBankQuestionList.stream()
+                .map(QuestionBankQuestionVO::objToVo).collect(Collectors.toList());
 
-        // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
-        // region 可选
-        // 1. 关联查询用户信息
-        Set<Long> userIdSet = questionBankQuestionList.stream().map(QuestionBankQuestion::getUserId).collect(Collectors.toSet());
-        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
-                .collect(Collectors.groupingBy(User::getId));
-        // 2. 已登录，获取用户点赞、收藏状态
-        Map<Long, Boolean> questionBankQuestionIdHasThumbMap = new HashMap<>();
-        Map<Long, Boolean> questionBankQuestionIdHasFavourMap = new HashMap<>();
-        User loginUser = userService.getLoginUserPermitNull(request);
-        if (loginUser != null) {
-
-        }
-        // 填充信息
-        questionBankQuestionVOList.forEach(questionBankQuestionVO -> {
-            Long userId = questionBankQuestionVO.getUserId();
-            User user = null;
-            if (userIdUserListMap.containsKey(userId)) {
-                user = userIdUserListMap.get(userId).get(0);
-            }
-        });
-        // endregion
 
         questionBankQuestionVOPage.setRecords(questionBankQuestionVOList);
         return questionBankQuestionVOPage;

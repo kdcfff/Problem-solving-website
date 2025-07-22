@@ -43,7 +43,7 @@ public class QuestionBankServiceImpl extends ServiceImpl<QuestionBankMapper, Que
      * 校验数据
      *
      * @param questionBank
-     * @param add      对创建的数据进行校验
+     * @param add          对创建的数据进行校验
      */
     @Override
     public void validQuestionBank(QuestionBank questionBank, boolean add) {
@@ -82,15 +82,18 @@ public class QuestionBankServiceImpl extends ServiceImpl<QuestionBankMapper, Que
         String sortField = questionBankQueryRequest.getSortField();
         String sortOrder = questionBankQueryRequest.getSortOrder();
         Long userId = questionBankQueryRequest.getUserId();
+        String description = questionBankQueryRequest.getDescription();
+        String picture = questionBankQueryRequest.getPicture();
         // todo 补充需要的查询条件
         // 从多字段中搜索
         if (StringUtils.isNotBlank(searchText)) {
             // 需要拼接查询条件
-            queryWrapper.and(qw -> qw.like("title", searchText).or().like("content", searchText));
+            queryWrapper.and(qw -> qw.like("title", searchText).or().like("description", searchText));
         }
         // 模糊查询
         queryWrapper.like(StringUtils.isNotBlank(title), "title", title);
-
+        queryWrapper.like(StringUtils.isNotBlank(description), "description", description);
+        queryWrapper.like(StringUtils.isNotBlank(picture), "picture", picture);
         // 精确查询
         queryWrapper.ne(ObjectUtils.isNotEmpty(notId), "id", notId);
         queryWrapper.eq(ObjectUtils.isNotEmpty(id), "id", id);
@@ -124,12 +127,7 @@ public class QuestionBankServiceImpl extends ServiceImpl<QuestionBankMapper, Que
         }
         UserVO userVO = userService.getUserVO(user);
         questionBankVO.setUser(userVO);
-        // 2. 已登录，获取用户点赞、收藏状态
-        long questionBankId = questionBank.getId();
-        User loginUser = userService.getLoginUserPermitNull(request);
-        if (loginUser != null) {
-            // 获取点赞
-        }
+
         // endregion
 
         return questionBankVO;
@@ -150,32 +148,8 @@ public class QuestionBankServiceImpl extends ServiceImpl<QuestionBankMapper, Que
             return questionBankVOPage;
         }
         // 对象列表 => 封装对象列表
-        List<QuestionBankVO> questionBankVOList = questionBankList.stream().map(questionBank -> {
-            return QuestionBankVO.objToVo(questionBank);
-        }).collect(Collectors.toList());
-
-        // todo 可以根据需要为封装对象补充值，不需要的内容可以删除
-        // region 可选
-        // 1. 关联查询用户信息
-        Set<Long> userIdSet = questionBankList.stream().map(QuestionBank::getUserId).collect(Collectors.toSet());
-        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet).stream()
-                .collect(Collectors.groupingBy(User::getId));
-        // 2. 已登录，获取用户点赞、收藏状态
-        Map<Long, Boolean> questionBankIdHasThumbMap = new HashMap<>();
-        Map<Long, Boolean> questionBankIdHasFavourMap = new HashMap<>();
-        User loginUser = userService.getLoginUserPermitNull(request);
-        if (loginUser != null) {
-
-        }
-        // 填充信息
-        questionBankVOList.forEach(questionBankVO -> {
-            Long userId = questionBankVO.getUserId();
-            User user = null;
-            if (userIdUserListMap.containsKey(userId)) {
-                user = userIdUserListMap.get(userId).get(0);
-            }
-        });
-        // endregion
+        List<QuestionBankVO> questionBankVOList = questionBankList.stream()
+                .map(QuestionBankVO::objToVo).collect(Collectors.toList());
 
         questionBankVOPage.setRecords(questionBankVOList);
         return questionBankVOPage;

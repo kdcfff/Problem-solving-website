@@ -46,10 +46,11 @@ public class QuestionBankController {
     /**
      * 创建题库
      *
-     * @param questionBankAddRequest
-     * @param request
-     * @return
-     */
+     * @param questionBankAddRequest 题库添加参数
+     * @param request 请求
+     * @return 创建的题库id
+     * */
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @PostMapping("/add")
     public BaseResponse<Long> addQuestionBank(@RequestBody QuestionBankAddRequest questionBankAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(questionBankAddRequest == null, ErrorCode.PARAMS_ERROR);
