@@ -9,14 +9,20 @@ import com.mishicoder.common.ResultUtils;
 import com.mishicoder.constant.UserConstant;
 import com.mishicoder.exception.BusinessException;
 import com.mishicoder.exception.ThrowUtils;
+import com.mishicoder.model.dto.question.QuestionQueryRequest;
 import com.mishicoder.model.dto.questionBank.QuestionBankAddRequest;
 import com.mishicoder.model.dto.questionBank.QuestionBankEditRequest;
 import com.mishicoder.model.dto.questionBank.QuestionBankQueryRequest;
 import com.mishicoder.model.dto.questionBank.QuestionBankUpdateRequest;
+import com.mishicoder.model.dto.questionBankQuestion.QuestionBankQuestionBatchRemoveRequest;
+import com.mishicoder.model.entity.Question;
 import com.mishicoder.model.entity.QuestionBank;
+import com.mishicoder.model.entity.QuestionBankQuestion;
 import com.mishicoder.model.entity.User;
 import com.mishicoder.model.vo.QuestionBankVO;
+import com.mishicoder.service.QuestionBankQuestionService;
 import com.mishicoder.service.QuestionBankService;
+import com.mishicoder.service.QuestionService;
 import com.mishicoder.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -27,8 +33,6 @@ import javax.servlet.http.HttpServletRequest;
 
 /**
  * 题库接口
- *
- *
  */
 @RestController
 @RequestMapping("/questionBank")
@@ -41,15 +45,19 @@ public class QuestionBankController {
     @Resource
     private UserService userService;
 
+    @Resource
+    QuestionService questionService;
+
+
     // region 增删改查
 
     /**
      * 创建题库
      *
      * @param questionBankAddRequest 题库添加参数
-     * @param request 请求
+     * @param request                请求
      * @return 创建的题库id
-     * */
+     */
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @PostMapping("/add")
     public BaseResponse<Long> addQuestionBank(@RequestBody QuestionBankAddRequest questionBankAddRequest, HttpServletRequest request) {
@@ -77,6 +85,7 @@ public class QuestionBankController {
      * @param request
      * @return
      */
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteQuestionBank(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
@@ -125,19 +134,31 @@ public class QuestionBankController {
     }
 
     /**
-     * 根据 id 获取题库（封装类）
+     * 获取题库（封装类）
      *
-     * @param id
-     * @return
+     * @param questionBankQueryRequest 题库查询参数
+     * @return 获取的题库封装类
      */
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionBankVO> getQuestionBankVOById(long id, HttpServletRequest request) {
+    public BaseResponse<QuestionBankVO> getQuestionBankVOById(QuestionBankQueryRequest questionBankQueryRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(questionBankQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        Long id = questionBankQueryRequest.getId();
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
         QuestionBank questionBank = questionBankService.getById(id);
         ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
+        // 查询题库封装类
+        QuestionBankVO questionBankVO = questionBankService.getQuestionBankVO(questionBank, request);
+        // 是否要关联查询题库下的题目列表
+        boolean needQueryQuestionList = questionBankQueryRequest.isNeedQueryQuestionList();
+        if (needQueryQuestionList) {
+            QuestionQueryRequest questionQueryRequest = new QuestionQueryRequest();
+            questionQueryRequest.setQuestionBankId(id);
+            Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
+            questionBankVO.setQuestionPage(questionPage);
+        }
         // 获取封装类
-        return ResultUtils.success(questionBankService.getQuestionBankVO(questionBank, request));
+        return ResultUtils.success(questionBankVO);
     }
 
     /**
@@ -166,7 +187,7 @@ public class QuestionBankController {
      */
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<QuestionBankVO>> listQuestionBankVOByPage(@RequestBody QuestionBankQueryRequest questionBankQueryRequest,
-                                                               HttpServletRequest request) {
+                                                                       HttpServletRequest request) {
         long current = questionBankQueryRequest.getCurrent();
         long size = questionBankQueryRequest.getPageSize();
         // 限制爬虫
@@ -187,7 +208,7 @@ public class QuestionBankController {
      */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<QuestionBankVO>> listMyQuestionBankVOByPage(@RequestBody QuestionBankQueryRequest questionBankQueryRequest,
-                                                                 HttpServletRequest request) {
+                                                                         HttpServletRequest request) {
         ThrowUtils.throwIf(questionBankQueryRequest == null, ErrorCode.PARAMS_ERROR);
         // 补充查询条件，只查询当前登录用户的数据
         User loginUser = userService.getLoginUser(request);

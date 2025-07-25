@@ -36,8 +36,7 @@ public class QuestionBankQueryRequest extends PageRequest implements Serializabl
      */
     private String title;
 
-
-
+    private boolean needQueryQuestionList;
 
     /**
      * 描述

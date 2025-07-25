@@ -1,5 +1,7 @@
 package com.mishicoder.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mishicoder.annotation.AuthCheck;
 import com.mishicoder.common.BaseResponse;
@@ -9,10 +11,7 @@ import com.mishicoder.common.ResultUtils;
 import com.mishicoder.constant.UserConstant;
 import com.mishicoder.exception.BusinessException;
 import com.mishicoder.exception.ThrowUtils;
-import com.mishicoder.model.dto.questionBankQuestion.QuestionBankQuestionAddRequest;
-import com.mishicoder.model.dto.questionBankQuestion.QuestionBankQuestionEditRequest;
-import com.mishicoder.model.dto.questionBankQuestion.QuestionBankQuestionQueryRequest;
-import com.mishicoder.model.dto.questionBankQuestion.QuestionBankQuestionUpdateRequest;
+import com.mishicoder.model.dto.questionBankQuestion.*;
 import com.mishicoder.model.entity.QuestionBankQuestion;
 import com.mishicoder.model.entity.User;
 import com.mishicoder.model.vo.QuestionBankQuestionVO;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 题库题目链接接口
@@ -200,6 +200,21 @@ public class QuestionBankQuestionController {
                 questionBankQuestionService.getQueryWrapper(questionBankQuestionQueryRequest));
         // 获取封装类
         return ResultUtils.success(questionBankQuestionService.getQuestionBankQuestionVOPage(questionBankQuestionPage, request));
+    }
+
+
+    @PostMapping("/remove")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> removeQuestionBank
+            (@RequestBody QuestionBankQuestionRemoveRequest questionBankQuestionRemoveRequest) {
+        ThrowUtils.throwIf(questionBankQuestionRemoveRequest == null, ErrorCode.PARAMS_ERROR);
+        Long questionBankId = questionBankQuestionRemoveRequest.getQuestionBankId();
+        Long questionId = questionBankQuestionRemoveRequest.getQuestionId();
+        ThrowUtils.throwIf(questionBankId == null || questionId == null, ErrorCode.PARAMS_ERROR);
+        LambdaQueryWrapper<QuestionBankQuestion> queryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
+                .eq(QuestionBankQuestion::getQuestionBankId, questionBankId)
+                .eq(QuestionBankQuestion::getQuestionId, questionId);
+        return ResultUtils.success(questionBankQuestionService.remove(queryWrapper));
     }
     // endregion
 }

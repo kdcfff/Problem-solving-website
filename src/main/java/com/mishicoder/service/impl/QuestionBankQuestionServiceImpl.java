@@ -9,25 +9,26 @@ import com.mishicoder.constant.CommonConstant;
 import com.mishicoder.exception.ThrowUtils;
 import com.mishicoder.mapper.QuestionBankQuestionMapper;
 import com.mishicoder.model.dto.questionBankQuestion.QuestionBankQuestionQueryRequest;
+import com.mishicoder.model.entity.Question;
 import com.mishicoder.model.entity.QuestionBankQuestion;
 
 import com.mishicoder.model.entity.User;
 import com.mishicoder.model.vo.QuestionBankQuestionVO;
 import com.mishicoder.model.vo.UserVO;
 import com.mishicoder.service.QuestionBankQuestionService;
+import com.mishicoder.service.QuestionBankService;
+import com.mishicoder.service.QuestionService;
 import com.mishicoder.service.UserService;
 import com.mishicoder.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +41,12 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl<QuestionBankQue
     @Resource
     private UserService userService;
 
+    @Resource
+    @Lazy
+    QuestionService questionService;
+
+    @Resource
+    QuestionBankService questionBankService;
     /**
      * 校验数据
      *
@@ -49,15 +56,16 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl<QuestionBankQue
     @Override
     public void validQuestionBankQuestion(QuestionBankQuestion questionBankQuestion, boolean add) {
         ThrowUtils.throwIf(questionBankQuestion == null, ErrorCode.PARAMS_ERROR);
-        // todo 从对象中取值
-        Long questionBankQuestionId = questionBankQuestion.getQuestionBankId();
-        // 创建数据时，参数不能为空
-        if (add) {
-
+        Long questionBankId = questionBankQuestion.getQuestionBankId();
+        Long questionId = questionBankQuestion.getQuestionId();
+        ThrowUtils.throwIf(questionBankId == null || questionId == null, ErrorCode.PARAMS_ERROR);
+        Question question = questionService.getById(questionId);
+        if (question == null){
+            ThrowUtils.throwIf(true, ErrorCode.NOT_FOUND_ERROR);
         }
-        // 修改数据时，有参数则校验
-        // todo 补充校验规则
-
+        if (questionBankService.getById(questionBankId) ==  null){
+            ThrowUtils.throwIf(true, ErrorCode.NOT_FOUND_ERROR);
+        }
     }
 
     /**
